@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Login</title>
+        <style>
+            table {
+                border-collapse: collapse;
+            }
+            table tr td, table tr th{
+                border: 1px solid black;
+            }
+        </style>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    </head>
+    <body>
+        <div id="userData">
+
+        </div>
+        <table id="users">
+            <tr>
+                <th>
+                    Login
+                </th>
+                <th>
+                    Name
+                </th>
+                <th>
+                    Cell
+                </th>
+                <th>
+                    County
+                </th>
+                <th>
+                    Postcode
+                </th>
+                <th>
+                    IsAdmin
+                </th>
+                <th>
+                    Actions
+                </th>
+            </tr>
+        </table>
+        <script>
+            let params = new URLSearchParams();
+            params.append('login', sessionStorage.getItem('login'));
+            params.append('password', sessionStorage.getItem('password'));
+
+            let userData = document.getElementById('userData');
+            let usersTable = document.getElementById("users");
+            axios.post('/server/authenticate.php', params)
+                .then(function (response) {
+                    let user = response.data.user;
+                    let html = '';
+                    for(const key in user){
+                        html += "<p>" + key + ": " + (user[key] == null ? '' : user[key]) + "</p>";
+                    }
+                    userData.innerHTML = html;
+                    if(user['isAdmin']){
+                        axios.get('/server/getUsers.php')
+                            .then(function (response) {
+                                console.log(response);
+                                let users = response.data.users;
+                                console.log(users);
+                                let html = '';
+                                for(let i = 0; i < users.length; i++){
+                                    user = users[i];
+                                    html += '<tr>';
+                                    for (const key in user){
+                                        html += '<td>' + (user[key] == null ? '' : user[key]) + '</td>';
+                                    }
+                                    html += '<td><a href="/client/editUser.html?login='+ user['login'] +'">Edit</a><br></td>';
+                                    html += '</tr>';
+                                }
+                                usersTable.innerHTML += html;
+                            });
+                    }
+                    else{
+                        usersTable.remove();
+                    }
+                })
+                .catch(function (error) {
+                    window.location.replace("/client/login.html");
+                });
+
+
+        </script>
+    </body>
+</html>

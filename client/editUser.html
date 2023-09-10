@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        form input[type="submit"]{
+            width: 11rem;
+            margin-top: 1rem;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<p id="error"></p>
+<form method="post" id="userData">
+
+</form>
+
+<form method="post" id="deleteUser">
+    <input type="submit" value="Delete">
+</form>
+
+<script>
+    var queryDict = {}
+    location.search.substr(1).split("&").forEach(function(item) {queryDict[item.split("=")[0]] = item.split("=")[1]})
+
+    let params = new URLSearchParams();
+    params.append('login', sessionStorage.getItem('login'));
+    params.append('password', sessionStorage.getItem('password'));
+
+    let userData = document.getElementById('userData');
+    let deleteUser = document.getElementById('deleteUser');
+    let errorEl = document.getElementById('error');
+
+    axios.post('/server/authenticate.php', params)
+        .then(function (response) {
+            let user = response.data.user;
+
+            let params = new URLSearchParams();
+            params.append('login', queryDict.login);
+            if(user['isAdmin']){
+                axios.post('/server/getUser.php', params)
+                    .then(function (response) {
+                        let user = response.data.user;
+                        let html = '';
+                        for (const key in user){
+                            html += '<label for="' + key + '">' + key + '<br><input type="text" id="' + key + '" name="' + key + '" value="' + (user[key] == null ? '' : user[key]) + '"></label>';
+                        }
+                        html += '<input type="submit" value="Update">';
+                        userData.innerHTML += html;
+                    });
+            }
+            else{
+                window.location.replace("/client");
+            }
+        })
+        .catch(function (error) {
+            window.location.replace("/client/login.html");
+        });
+
+    userData.addEventListener('submit', function (e){
+        e.preventDefault();
+        errorEl.innerHTML = '';
+
+        let name = document.getElementById('name');
+        let country = document.getElementById('country');
+        let postcode = document.getElementById('postcode');
+        let cell = document.getElementById('cell');
+        let isAdmin = document.getElementById('isAdmin');
+
+        let params = new URLSearchParams();
+        params.append('name', name.value);
+        params.append('country', country.value);
+        params.append('postcode', postcode.value);
+        params.append('cell', cell.value);
+        params.append('isAdmin', isAdmin.value);
+        params.append('login', queryDict.login);
+
+        axios.post('/server/editUser.php', params)
+            .then(function (response) {
+                alert('User updated successfully!');
+                window.location.replace("/client")
+            })
+            .catch(function (error) {
+                errorEl.innerHTML = error.response.data.message;
+            });
+    });
+
+    deleteUser.addEventListener('submit', function (e){
+        e.preventDefault();
+        errorEl.innerHTML = '';
+
+        let params = new URLSearchParams();;
+        params.append('login', queryDict.login);
+
+        axios.post('/server/deleteUser.php', params)
+            .then(function (response) {
+                alert('User deleted successfully!');
+                window.location.replace("/client")
+            })
+            .catch(function (error) {
+                errorEl.innerHTML = error.response.data.message;
+            });
+    });
+</script>
+</body>
+</html>
